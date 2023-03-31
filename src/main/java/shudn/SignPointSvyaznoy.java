@@ -55,17 +55,30 @@ public class SignPointSvyaznoy {
             .configure(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS, false);
 
     public static void main(String[] args) {
-        List<PointConfig> migrations = loadObjectList(PointConfig.class, "shudn/sign_point_svyaznoy_07_02.csv").stream()
+        List<PointConfig> migrations = loadObjectList(PointConfig.class, "shudn/sign_point_svyaznoy_31_03.csv").stream()
                 .map(SignPointSvyaznoy::normalizeShopName)
                 .filter(distinctByKey(p -> p.partnerCode))
                 .collect(Collectors.toList());
+
+// Пилотный список
+//        List<PointConfig> pilotTT = loadObjectList(PointConfig.class, "shudn/pilot_TT_31_03.csv");
+//        var partnerCodeAllTT = migrations.stream()
+//                .map(PointConfig::getPartnerCode)
+//                .collect(Collectors.toSet());
+//        var partnerCodePilotTT = pilotTT.stream()
+//                .map(PointConfig::getPartnerCode)
+//                .collect(Collectors.toSet());
+//
+//        partnerCodePilotTT.stream()
+//                .filter(p -> !partnerCodeAllTT.contains(p))
+//                .forEach(System.out::println);
 
         System.out.println(migrations.size());
         migrations.stream()
                 .map(SignPointSvyaznoy::toInsert)
                 .filter(Objects::nonNull)
-                .skip(1000)
-//                .limit(1000)
+                .skip(0)
+                .limit(1000)
                 .forEach(System.out::println);
     }
 
