@@ -61,13 +61,13 @@ public class SignPointSvyaznoy {
                 .collect(Collectors.toList());
 
 // Пилотный список
-//        List<PointConfig> pilotTT = loadObjectList(PointConfig.class, "shudn/pilot_TT_31_03.csv");
+        List<PointConfig> pilotTT = loadObjectList(PointConfig.class, "shudn/pilot_TT_31_03.csv");
 //        var partnerCodeAllTT = migrations.stream()
 //                .map(PointConfig::getPartnerCode)
 //                .collect(Collectors.toSet());
-//        var partnerCodePilotTT = pilotTT.stream()
-//                .map(PointConfig::getPartnerCode)
-//                .collect(Collectors.toSet());
+        var partnerCodePilotTT = pilotTT.stream()
+                .map(PointConfig::getPartnerCode)
+                .collect(Collectors.toSet());
 //
 //        partnerCodePilotTT.stream()
 //                .filter(p -> !partnerCodeAllTT.contains(p))
@@ -75,8 +75,9 @@ public class SignPointSvyaznoy {
 
         System.out.println(migrations.size());
         migrations.stream()
-                .map(SignPointSvyaznoy::toInsert)
                 .filter(Objects::nonNull)
+                .filter(m -> partnerCodePilotTT.contains(m.getPartnerCode()))
+                .map(SignPointSvyaznoy::toInsert)
                 .skip(0)
                 .limit(1000)
                 .forEach(System.out::println);
