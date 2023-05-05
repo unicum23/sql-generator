@@ -14,7 +14,7 @@ public class ReportMain {
     private static final String COUNT_COLUMN = "count";
     private static final String LINE = "------------------";
     public static String FROM_DATE = "'2023-02-06 00:00:00'";
-    public static String TO_DATE = "'2023-04-03 00:00:00'";
+    public static String TO_DATE = "'2023-05-05 00:00:00'";
 
     public static String CONDITION_APPROVAL = "and bps.uuid in (select bpa.uuid\n" +
             "                   from business_process_audit bpa\n" +
