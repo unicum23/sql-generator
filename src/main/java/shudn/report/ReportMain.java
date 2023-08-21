@@ -9,12 +9,12 @@ import java.sql.SQLException;
 public class ReportMain {
     private static final String DB_URL = "jdbc:postgresql://srv-smart-db.isb:5432/core_service?currentSchema=core_service";
     private static final String DB_LOGIN = "db_admin";
-    private static final String DB_PASSWORD = "***";
+    private static final String DB_PASSWORD = "";
     private static final String WEEK_COLUMN = "week";
     private static final String COUNT_COLUMN = "count";
     private static final String LINE = "------------------";
-    public static String FROM_DATE = "'2023-02-06 00:00:00'";
-    public static String TO_DATE = "'2023-05-05 00:00:00'";
+    public static String FROM_DATE = "'2023-02-02 00:00:00'";
+    public static String TO_DATE = "'2023-07-25 00:00:00'";
 
     public static String CONDITION_APPROVAL = "and bps.uuid in (select bpa.uuid\n" +
             "                   from business_process_audit bpa\n" +
@@ -26,7 +26,9 @@ public class ReportMain {
     public static String CONDITION_SIEBEL = " and bps.is_new_conveyor = false ";
     public static String CONDITION_NEW_CONVEYOR = " and bps.is_new_conveyor = true ";
     public static String CONDITION_PAP11 = "  and opt.technology_type = 'PAPERLESS_11'";
+    public static String CONDITION_PAP12 = "  and opt.technology_type = 'PAPERLESS_12'";
     public static String CONDITION_PAP20 = " and opt.technology_type = 'PAPERLESS_20' ";
+    public static String CONDITION_PAP22 = " and opt.technology_type = 'PAPERLESS_22' ";
     public static String CONDITION_PAPERLESS = "  and agr.sign_method = 'PAPERLESS' ";
     public static String CONDITION_PAPER_TECH = " and agr.sign_method = 'PAPER_TECH' ";
 
@@ -39,12 +41,15 @@ public class ReportMain {
 
             siebelAllRequests(conn);
             siebelPap11Requests(conn);
+            siebelPap12Requests(conn);
             siebelPapTechRequests(conn);
 
             conveyorAllRequests(conn);
             conveyorPap11Requests(conn);
+            conveyorPap12Requests(conn);
             conveyorPapTechRequests(conn);
             conveyorPap20Requests(conn);
+            conveyorPap22Requests(conn);
         } catch (SQLException e) {
             System.err.format("SQL State: %s\n%s", e.getSQLState(), e.getMessage());
         } catch (Exception e) {
@@ -124,6 +129,27 @@ public class ReportMain {
         }
     }
 
+    private static void siebelPap12Requests(Connection conn) throws SQLException {
+        System.out.println("Заявки чз зибель (сформирован договор по paperless_12)");
+
+        try {
+            PreparedStatement preparedStatement = conn.prepareStatement(getAllRequestsSql(CONDITION_APPROVAL + CONDITION_SIEBEL + CONDITION_PAP12 + CONDITION_PAPERLESS,
+                    JOIN_AGREEMENT));
+            ResultSet resultSet = preparedStatement.executeQuery();
+            printResult(resultSet, "Одобрено:");
+
+            preparedStatement = conn.prepareStatement(getAllRequestsSql(CONDITION_PAID + CONDITION_SIEBEL + CONDITION_PAP12 + CONDITION_PAPERLESS,
+                    JOIN_AGREEMENT));
+            resultSet = preparedStatement.executeQuery();
+            printResult(resultSet, "Выдано:");
+
+            System.out.println(LINE);
+            preparedStatement.close();
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
     private static void siebelPapTechRequests(Connection conn) throws SQLException {
         System.out.println("Заявки чз зибель (сформирован договор по paper_tech)");
 
@@ -191,6 +217,27 @@ public class ReportMain {
         }
     }
 
+    private static void conveyorPap12Requests(Connection conn) throws SQLException {
+        System.out.println("Заявки чз конвейер (сформирован договор по paperless_12)");
+
+        try {
+            PreparedStatement preparedStatement = conn.prepareStatement(getAllRequestsSql(CONDITION_APPROVAL + CONDITION_NEW_CONVEYOR + CONDITION_PAP12 + CONDITION_PAPERLESS,
+                    JOIN_AGREEMENT));
+            ResultSet resultSet = preparedStatement.executeQuery();
+            printResult(resultSet, "Одобрено:");
+
+            preparedStatement = conn.prepareStatement(getAllRequestsSql(CONDITION_PAID + CONDITION_NEW_CONVEYOR + CONDITION_PAP12 + CONDITION_PAPERLESS,
+                    JOIN_AGREEMENT));
+            resultSet = preparedStatement.executeQuery();
+            printResult(resultSet, "Выдано:");
+
+            System.out.println(LINE);
+            preparedStatement.close();
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
     private static void conveyorPapTechRequests(Connection conn) throws SQLException {
         System.out.println("Заявки чз конвейер (сформирован договор по paper_tech)");
 
@@ -222,6 +269,27 @@ public class ReportMain {
             printResult(resultSet, "Одобрено:");
 
             preparedStatement = conn.prepareStatement(getAllRequestsSql(CONDITION_PAID + CONDITION_NEW_CONVEYOR + CONDITION_PAP20 + CONDITION_PAPERLESS,
+                    JOIN_AGREEMENT));
+            resultSet = preparedStatement.executeQuery();
+            printResult(resultSet, "Выдано:");
+
+            System.out.println(LINE);
+            preparedStatement.close();
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    private static void conveyorPap22Requests(Connection conn) throws SQLException {
+        System.out.println("Заявки чз конвейер (сформирован договор по paperless_22)");
+
+        try {
+            PreparedStatement preparedStatement = conn.prepareStatement(getAllRequestsSql(CONDITION_APPROVAL + CONDITION_NEW_CONVEYOR + CONDITION_PAP22 + CONDITION_PAPERLESS,
+                    JOIN_AGREEMENT));
+            ResultSet resultSet = preparedStatement.executeQuery();
+            printResult(resultSet, "Одобрено:");
+
+            preparedStatement = conn.prepareStatement(getAllRequestsSql(CONDITION_PAID + CONDITION_NEW_CONVEYOR + CONDITION_PAP22 + CONDITION_PAPERLESS,
                     JOIN_AGREEMENT));
             resultSet = preparedStatement.executeQuery();
             printResult(resultSet, "Выдано:");
