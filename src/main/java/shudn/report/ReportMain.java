@@ -1,5 +1,7 @@
 package shudn.report;
 
+import org.apache.commons.lang3.StringUtils;
+
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
@@ -9,12 +11,13 @@ import java.sql.SQLException;
 public class ReportMain {
     private static final String DB_URL = "jdbc:postgresql://srv-smart-db.isb:5432/core_service?currentSchema=core_service";
     private static final String DB_LOGIN = "db_admin";
-    private static final String DB_PASSWORD = "";
+    private static final String DB_PASSWORD = "***";
     private static final String WEEK_COLUMN = "week";
     private static final String COUNT_COLUMN = "count";
+    private static final String AMOUNT_COLUMN = "amount";
     private static final String LINE = "------------------";
-    public static String FROM_DATE = "'2023-02-02 00:00:00'";
-    public static String TO_DATE = "'2023-07-25 00:00:00'";
+    public static String FROM_DATE = "'2023-01-02 00:00:00'";
+    public static String TO_DATE = "'2023-09-21 00:00:00'";
 
     public static String CONDITION_APPROVAL = "and bps.uuid in (select bpa.uuid\n" +
             "                   from business_process_audit bpa\n" +
@@ -61,20 +64,24 @@ public class ReportMain {
         System.out.println("Все заявки (конвейер и зибель, любые методы подписания)");
 
         try {
-            PreparedStatement preparedStatement = conn.prepareStatement(getAllRequestsSql("", ""));
+            PreparedStatement preparedStatement = conn.prepareStatement(getAllRequestsSql("", "", ""));
             ResultSet resultSet = preparedStatement.executeQuery();
             printWeeks(resultSet);
 
             resultSet = preparedStatement.executeQuery();
-            printResult(resultSet, "Принято:");
+            printResult(resultSet, "Подано:");
 
-            preparedStatement = conn.prepareStatement(getAllRequestsSql(CONDITION_APPROVAL, ""));
+            preparedStatement = conn.prepareStatement(getAllRequestsSql("", CONDITION_APPROVAL, ""));
             resultSet = preparedStatement.executeQuery();
             printResult(resultSet, "Одобрено:");
 
-            preparedStatement = conn.prepareStatement(getAllRequestsSql(CONDITION_PAID, JOIN_AGREEMENT));
+            preparedStatement = conn.prepareStatement(getAllRequestsSql("", CONDITION_PAID, JOIN_AGREEMENT));
             resultSet = preparedStatement.executeQuery();
             printResult(resultSet, "Выдано:");
+
+            preparedStatement = conn.prepareStatement(getAllRequestsSql("sum(agr.credit_amount)", CONDITION_PAID, JOIN_AGREEMENT));
+            resultSet = preparedStatement.executeQuery();
+            printAmount(resultSet, "Сумма кредитов:");
 
             System.out.println(LINE);
             preparedStatement.close();
@@ -87,19 +94,24 @@ public class ReportMain {
         System.out.println("Заявки чз зибель (все/с договором и без)");
 
         try {
-            PreparedStatement preparedStatement = conn.prepareStatement(getAllRequestsSql(CONDITION_SIEBEL, ""));
+            PreparedStatement preparedStatement = conn.prepareStatement(getAllRequestsSql("", CONDITION_SIEBEL, ""));
             ResultSet resultSet = preparedStatement.executeQuery();
-            printResult(resultSet, "Принято:");
+            printResult(resultSet, "Подано:");
 
-            preparedStatement = conn.prepareStatement(getAllRequestsSql(CONDITION_APPROVAL + CONDITION_SIEBEL,
+            preparedStatement = conn.prepareStatement(getAllRequestsSql("", CONDITION_APPROVAL + CONDITION_SIEBEL,
                     ""));
             resultSet = preparedStatement.executeQuery();
             printResult(resultSet, "Одобрено:");
 
-            preparedStatement = conn.prepareStatement(getAllRequestsSql(CONDITION_PAID + CONDITION_SIEBEL,
+            preparedStatement = conn.prepareStatement(getAllRequestsSql("", CONDITION_PAID + CONDITION_SIEBEL,
                     JOIN_AGREEMENT));
             resultSet = preparedStatement.executeQuery();
             printResult(resultSet, "Выдано:");
+
+            preparedStatement = conn.prepareStatement(getAllRequestsSql("sum(agr.credit_amount)", CONDITION_PAID + CONDITION_SIEBEL,
+                    JOIN_AGREEMENT));
+            resultSet = preparedStatement.executeQuery();
+            printAmount(resultSet, "Сумма кредитов:");
 
             System.out.println(LINE);
             preparedStatement.close();
@@ -112,15 +124,20 @@ public class ReportMain {
         System.out.println("Заявки чз зибель (сформирован договор по paperless_11)");
 
         try {
-            PreparedStatement preparedStatement = conn.prepareStatement(getAllRequestsSql(CONDITION_APPROVAL + CONDITION_SIEBEL + CONDITION_PAP11 + CONDITION_PAPERLESS,
+            PreparedStatement preparedStatement = conn.prepareStatement(getAllRequestsSql("", CONDITION_APPROVAL + CONDITION_SIEBEL + CONDITION_PAP11 + CONDITION_PAPERLESS,
                     JOIN_AGREEMENT));
             ResultSet resultSet = preparedStatement.executeQuery();
             printResult(resultSet, "Одобрено:");
 
-            preparedStatement = conn.prepareStatement(getAllRequestsSql(CONDITION_PAID + CONDITION_SIEBEL + CONDITION_PAP11 + CONDITION_PAPERLESS,
+            preparedStatement = conn.prepareStatement(getAllRequestsSql("", CONDITION_PAID + CONDITION_SIEBEL + CONDITION_PAP11 + CONDITION_PAPERLESS,
                     JOIN_AGREEMENT));
             resultSet = preparedStatement.executeQuery();
             printResult(resultSet, "Выдано:");
+
+            preparedStatement = conn.prepareStatement(getAllRequestsSql("sum(agr.credit_amount)", CONDITION_PAID + CONDITION_SIEBEL + CONDITION_PAP11,
+                    JOIN_AGREEMENT));
+            resultSet = preparedStatement.executeQuery();
+            printAmount(resultSet, "Сумма кредитов:");
 
             System.out.println(LINE);
             preparedStatement.close();
@@ -133,15 +150,20 @@ public class ReportMain {
         System.out.println("Заявки чз зибель (сформирован договор по paperless_12)");
 
         try {
-            PreparedStatement preparedStatement = conn.prepareStatement(getAllRequestsSql(CONDITION_APPROVAL + CONDITION_SIEBEL + CONDITION_PAP12 + CONDITION_PAPERLESS,
+            PreparedStatement preparedStatement = conn.prepareStatement(getAllRequestsSql("", CONDITION_APPROVAL + CONDITION_SIEBEL + CONDITION_PAP12 + CONDITION_PAPERLESS,
                     JOIN_AGREEMENT));
             ResultSet resultSet = preparedStatement.executeQuery();
             printResult(resultSet, "Одобрено:");
 
-            preparedStatement = conn.prepareStatement(getAllRequestsSql(CONDITION_PAID + CONDITION_SIEBEL + CONDITION_PAP12 + CONDITION_PAPERLESS,
+            preparedStatement = conn.prepareStatement(getAllRequestsSql("", CONDITION_PAID + CONDITION_SIEBEL + CONDITION_PAP12 + CONDITION_PAPERLESS,
                     JOIN_AGREEMENT));
             resultSet = preparedStatement.executeQuery();
             printResult(resultSet, "Выдано:");
+
+            preparedStatement = conn.prepareStatement(getAllRequestsSql("sum(agr.credit_amount)", CONDITION_PAID + CONDITION_SIEBEL + CONDITION_PAP12 + CONDITION_PAPERLESS,
+                    JOIN_AGREEMENT));
+            resultSet = preparedStatement.executeQuery();
+            printAmount(resultSet, "Сумма кредитов:");
 
             System.out.println(LINE);
             preparedStatement.close();
@@ -154,15 +176,20 @@ public class ReportMain {
         System.out.println("Заявки чз зибель (сформирован договор по paper_tech)");
 
         try {
-            PreparedStatement preparedStatement = conn.prepareStatement(getAllRequestsSql(CONDITION_APPROVAL + CONDITION_SIEBEL + CONDITION_PAPER_TECH,
+            PreparedStatement preparedStatement = conn.prepareStatement(getAllRequestsSql("", CONDITION_APPROVAL + CONDITION_SIEBEL + CONDITION_PAPER_TECH,
                     JOIN_AGREEMENT));
             ResultSet resultSet = preparedStatement.executeQuery();
             printResult(resultSet, "Одобрено:");
 
-            preparedStatement = conn.prepareStatement(getAllRequestsSql(CONDITION_PAID + CONDITION_SIEBEL + CONDITION_PAPER_TECH,
+            preparedStatement = conn.prepareStatement(getAllRequestsSql("", CONDITION_PAID + CONDITION_SIEBEL + CONDITION_PAPER_TECH,
                     JOIN_AGREEMENT));
             resultSet = preparedStatement.executeQuery();
             printResult(resultSet, "Выдано:");
+
+            preparedStatement = conn.prepareStatement(getAllRequestsSql("sum(agr.credit_amount)", CONDITION_PAID + CONDITION_SIEBEL + CONDITION_PAPER_TECH,
+                    JOIN_AGREEMENT));
+            resultSet = preparedStatement.executeQuery();
+            printAmount(resultSet, "Сумма кредитов:");
 
             System.out.println(LINE);
             preparedStatement.close();
@@ -175,19 +202,24 @@ public class ReportMain {
         System.out.println("Заявки чз конвейер (все/с договором и без)");
 
         try {
-            PreparedStatement preparedStatement = conn.prepareStatement(getAllRequestsSql(CONDITION_NEW_CONVEYOR, ""));
+            PreparedStatement preparedStatement = conn.prepareStatement(getAllRequestsSql("", CONDITION_NEW_CONVEYOR, ""));
             ResultSet resultSet = preparedStatement.executeQuery();
-            printResult(resultSet, "Принято:");
+            printResult(resultSet, "Подано:");
 
-            preparedStatement = conn.prepareStatement(getAllRequestsSql(CONDITION_APPROVAL + CONDITION_NEW_CONVEYOR,
+            preparedStatement = conn.prepareStatement(getAllRequestsSql("", CONDITION_APPROVAL + CONDITION_NEW_CONVEYOR,
                     ""));
             resultSet = preparedStatement.executeQuery();
             printResult(resultSet, "Одобрено:");
 
-            preparedStatement = conn.prepareStatement(getAllRequestsSql(CONDITION_PAID + CONDITION_NEW_CONVEYOR,
+            preparedStatement = conn.prepareStatement(getAllRequestsSql("", CONDITION_PAID + CONDITION_NEW_CONVEYOR,
                     JOIN_AGREEMENT));
             resultSet = preparedStatement.executeQuery();
             printResult(resultSet, "Выдано:");
+
+            preparedStatement = conn.prepareStatement(getAllRequestsSql("sum(agr.credit_amount)", CONDITION_PAID + CONDITION_NEW_CONVEYOR,
+                    JOIN_AGREEMENT));
+            resultSet = preparedStatement.executeQuery();
+            printAmount(resultSet, "Сумма кредитов:");
 
             System.out.println(LINE);
             preparedStatement.close();
@@ -200,15 +232,20 @@ public class ReportMain {
         System.out.println("Заявки чз конвейер (сформирован договор по paperless_11)");
 
         try {
-            PreparedStatement preparedStatement = conn.prepareStatement(getAllRequestsSql(CONDITION_APPROVAL + CONDITION_NEW_CONVEYOR + CONDITION_PAP11 + CONDITION_PAPERLESS,
+            PreparedStatement preparedStatement = conn.prepareStatement(getAllRequestsSql("", CONDITION_APPROVAL + CONDITION_NEW_CONVEYOR + CONDITION_PAP11 + CONDITION_PAPERLESS,
                     JOIN_AGREEMENT));
             ResultSet resultSet = preparedStatement.executeQuery();
             printResult(resultSet, "Одобрено:");
 
-            preparedStatement = conn.prepareStatement(getAllRequestsSql(CONDITION_PAID + CONDITION_NEW_CONVEYOR + CONDITION_PAP11 + CONDITION_PAPERLESS,
+            preparedStatement = conn.prepareStatement(getAllRequestsSql("", CONDITION_PAID + CONDITION_NEW_CONVEYOR + CONDITION_PAP11 + CONDITION_PAPERLESS,
                     JOIN_AGREEMENT));
             resultSet = preparedStatement.executeQuery();
             printResult(resultSet, "Выдано:");
+
+            preparedStatement = conn.prepareStatement(getAllRequestsSql("sum(agr.credit_amount)", CONDITION_PAID + CONDITION_NEW_CONVEYOR + CONDITION_PAP11 + CONDITION_PAPERLESS,
+                    JOIN_AGREEMENT));
+            resultSet = preparedStatement.executeQuery();
+            printAmount(resultSet, "Сумма кредитов:");
 
             System.out.println(LINE);
             preparedStatement.close();
@@ -221,15 +258,20 @@ public class ReportMain {
         System.out.println("Заявки чз конвейер (сформирован договор по paperless_12)");
 
         try {
-            PreparedStatement preparedStatement = conn.prepareStatement(getAllRequestsSql(CONDITION_APPROVAL + CONDITION_NEW_CONVEYOR + CONDITION_PAP12 + CONDITION_PAPERLESS,
+            PreparedStatement preparedStatement = conn.prepareStatement(getAllRequestsSql("", CONDITION_APPROVAL + CONDITION_NEW_CONVEYOR + CONDITION_PAP12 + CONDITION_PAPERLESS,
                     JOIN_AGREEMENT));
             ResultSet resultSet = preparedStatement.executeQuery();
             printResult(resultSet, "Одобрено:");
 
-            preparedStatement = conn.prepareStatement(getAllRequestsSql(CONDITION_PAID + CONDITION_NEW_CONVEYOR + CONDITION_PAP12 + CONDITION_PAPERLESS,
+            preparedStatement = conn.prepareStatement(getAllRequestsSql("", CONDITION_PAID + CONDITION_NEW_CONVEYOR + CONDITION_PAP12 + CONDITION_PAPERLESS,
                     JOIN_AGREEMENT));
             resultSet = preparedStatement.executeQuery();
             printResult(resultSet, "Выдано:");
+
+            preparedStatement = conn.prepareStatement(getAllRequestsSql("sum(agr.credit_amount)", CONDITION_PAID + CONDITION_NEW_CONVEYOR + CONDITION_PAP12 + CONDITION_PAPERLESS,
+                    JOIN_AGREEMENT));
+            resultSet = preparedStatement.executeQuery();
+            printAmount(resultSet, "Сумма кредитов:");
 
             System.out.println(LINE);
             preparedStatement.close();
@@ -242,15 +284,20 @@ public class ReportMain {
         System.out.println("Заявки чз конвейер (сформирован договор по paper_tech)");
 
         try {
-            PreparedStatement preparedStatement = conn.prepareStatement(getAllRequestsSql(CONDITION_APPROVAL + CONDITION_NEW_CONVEYOR + CONDITION_PAPER_TECH,
+            PreparedStatement preparedStatement = conn.prepareStatement(getAllRequestsSql("", CONDITION_APPROVAL + CONDITION_NEW_CONVEYOR + CONDITION_PAPER_TECH,
                     JOIN_AGREEMENT));
             ResultSet resultSet = preparedStatement.executeQuery();
             printResult(resultSet, "Одобрено:");
 
-            preparedStatement = conn.prepareStatement(getAllRequestsSql(CONDITION_PAID + CONDITION_NEW_CONVEYOR + CONDITION_PAPER_TECH,
+            preparedStatement = conn.prepareStatement(getAllRequestsSql("", CONDITION_PAID + CONDITION_NEW_CONVEYOR + CONDITION_PAPER_TECH,
                     JOIN_AGREEMENT));
             resultSet = preparedStatement.executeQuery();
             printResult(resultSet, "Выдано:");
+
+            preparedStatement = conn.prepareStatement(getAllRequestsSql("sum(agr.credit_amount)", CONDITION_PAID + CONDITION_NEW_CONVEYOR + CONDITION_PAPER_TECH,
+                    JOIN_AGREEMENT));
+            resultSet = preparedStatement.executeQuery();
+            printAmount(resultSet, "Сумма кредитов:");
 
             System.out.println(LINE);
             preparedStatement.close();
@@ -263,15 +310,20 @@ public class ReportMain {
         System.out.println("Заявки чз конвейер (сформирован договор по paperless_20)");
 
         try {
-            PreparedStatement preparedStatement = conn.prepareStatement(getAllRequestsSql(CONDITION_APPROVAL + CONDITION_NEW_CONVEYOR + CONDITION_PAP20 + CONDITION_PAPERLESS,
+            PreparedStatement preparedStatement = conn.prepareStatement(getAllRequestsSql("", CONDITION_APPROVAL + CONDITION_NEW_CONVEYOR + CONDITION_PAP20 + CONDITION_PAPERLESS,
                     JOIN_AGREEMENT));
             ResultSet resultSet = preparedStatement.executeQuery();
             printResult(resultSet, "Одобрено:");
 
-            preparedStatement = conn.prepareStatement(getAllRequestsSql(CONDITION_PAID + CONDITION_NEW_CONVEYOR + CONDITION_PAP20 + CONDITION_PAPERLESS,
+            preparedStatement = conn.prepareStatement(getAllRequestsSql("", CONDITION_PAID + CONDITION_NEW_CONVEYOR + CONDITION_PAP20 + CONDITION_PAPERLESS,
                     JOIN_AGREEMENT));
             resultSet = preparedStatement.executeQuery();
             printResult(resultSet, "Выдано:");
+
+            preparedStatement = conn.prepareStatement(getAllRequestsSql("sum(agr.credit_amount)", CONDITION_PAID + CONDITION_NEW_CONVEYOR + CONDITION_PAP20 + CONDITION_PAPERLESS,
+                    JOIN_AGREEMENT));
+            resultSet = preparedStatement.executeQuery();
+            printAmount(resultSet, "Сумма кредитов:");
 
             System.out.println(LINE);
             preparedStatement.close();
@@ -284,15 +336,20 @@ public class ReportMain {
         System.out.println("Заявки чз конвейер (сформирован договор по paperless_22)");
 
         try {
-            PreparedStatement preparedStatement = conn.prepareStatement(getAllRequestsSql(CONDITION_APPROVAL + CONDITION_NEW_CONVEYOR + CONDITION_PAP22 + CONDITION_PAPERLESS,
+            PreparedStatement preparedStatement = conn.prepareStatement(getAllRequestsSql("", CONDITION_APPROVAL + CONDITION_NEW_CONVEYOR + CONDITION_PAP22 + CONDITION_PAPERLESS,
                     JOIN_AGREEMENT));
             ResultSet resultSet = preparedStatement.executeQuery();
             printResult(resultSet, "Одобрено:");
 
-            preparedStatement = conn.prepareStatement(getAllRequestsSql(CONDITION_PAID + CONDITION_NEW_CONVEYOR + CONDITION_PAP22 + CONDITION_PAPERLESS,
+            preparedStatement = conn.prepareStatement(getAllRequestsSql("", CONDITION_PAID + CONDITION_NEW_CONVEYOR + CONDITION_PAP22 + CONDITION_PAPERLESS,
                     JOIN_AGREEMENT));
             resultSet = preparedStatement.executeQuery();
             printResult(resultSet, "Выдано:");
+
+            preparedStatement = conn.prepareStatement(getAllRequestsSql("sum(agr.credit_amount)", CONDITION_PAID + CONDITION_NEW_CONVEYOR + CONDITION_PAP22 + CONDITION_PAPERLESS,
+                    JOIN_AGREEMENT));
+            resultSet = preparedStatement.executeQuery();
+            printAmount(resultSet, "Сумма кредитов:");
 
             System.out.println(LINE);
             preparedStatement.close();
@@ -309,6 +366,14 @@ public class ReportMain {
         System.out.println();
     }
 
+    private static void printAmount(ResultSet resultSet, String head) throws SQLException {
+        System.out.println(head);
+        while (resultSet.next()) {
+            System.out.println(resultSet.getInt(AMOUNT_COLUMN));
+        }
+        System.out.println();
+    }
+
     private static void printWeeks(ResultSet resultSet) throws SQLException {
         while (resultSet.next()) {
             System.out.println(resultSet.getInt(WEEK_COLUMN));
@@ -316,9 +381,10 @@ public class ReportMain {
         System.out.println();
     }
 
-    private static String getAllRequestsSql(String additionCondition, String additionJoin) {
-        return "select date_part('week', bps.create_date::date) AS week, count(*)\n" +
-                "from business_process_state bps\n" +
+    private static String getAllRequestsSql(String additionSelect, String additionCondition, String additionJoin) {
+        final String query = "select date_part('week', bps.create_date::date) " + " AS " + WEEK_COLUMN + ", count(*)" +
+                (StringUtils.isNotBlank(additionSelect) ? (", " + additionSelect + " AS " + AMOUNT_COLUMN) : " ") +
+                " from business_process_state bps\n" +
                 "         join opty_request opt on opt.opty_id = bps.opty_id\n" +
                 additionJoin +
                 "where bps.create_date between " + FROM_DATE + " and " + TO_DATE + "\n" +
@@ -329,5 +395,7 @@ public class ReportMain {
                 additionCondition +
                 "GROUP BY week\n" +
                 "ORDER BY week;";
+//        System.out.println(query);
+        return query;
     }
 }
